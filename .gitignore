@@ -1,6 +1,25 @@
+# Terraform local state
+*.tfstate
+*.tfstate.*
 .terraform/
-terraform.tfstate
-terraform.tfstate.*
-terraform.tfvars
+
+# Terraform plan and backup files
+*.tfplan
 *.backup
+
+# Terraform variables (sensitive)
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+
+# Logs
 *.log
+
+# IDEs/editors
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
