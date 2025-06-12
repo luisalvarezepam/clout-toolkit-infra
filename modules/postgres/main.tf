@@ -1,3 +1,18 @@
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 3.42.0"
+    }
+    postgresql = {
+      source  = "cyrilgdn/postgresql"
+      version = ">= 1.18.0"
+    }
+  }
+
+  required_version = ">= 1.3.0"
+}
+
 resource "azurerm_postgresql_flexible_server" "postgres" {
   name                   = "postgres-cloudkit-dev-east2"
   resource_group_name    = var.rg_name

@@ -1,3 +1,20 @@
+terraform {
+  required_version = ">= 1.3.0"
+
+  backend "azurerm" {
+    resource_group_name  = "rg-cloudkit-dev-east2"
+    storage_account_name = "cloudkitterraformxyz"
+    container_name       = "tfstate"
+    key                  = "cloudkit-infra.tfstate"
+  }
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 3.42.0"
+    }
+  }
+}
 
 provider "azurerm" {
   features {}
@@ -32,6 +49,19 @@ module "key_vault" {
   app_password      = var.app_password
 }
 
+module "acr" {
+  source   = "./modules/acr"
+  rg_name  = var.rg_name
+  location = var.location
+}
+
+module "container_env" {
+  source            = "./modules/container_env"
+  rg_name           = var.rg_name
+  location          = var.location
+  backend_subnet_id = module.network.backend_subnet_id
+}
+
 module "container_apps" {
   source             = "./modules/container_apps"
   rg_name            = var.rg_name
@@ -40,12 +70,12 @@ module "container_apps" {
   db_host            = module.postgres.db_host
   db_user            = var.app_user
   db_password        = var.app_password
-  env_id             = module.network.container_app_env_id
+  env_id             = module.container_env.env_id
   key_vault_id       = module.key_vault.key_vault_id
   key_vault_uri      = module.key_vault.key_vault_uri
-  acr_login_server   = module.container_apps.acr_login_server
-  acr_username       = module.container_apps.acr_username
-  acr_password       = module.container_apps.acr_password
+  acr_login_server   = module.acr.login_server
+  acr_username       = module.acr.admin_username
+  acr_password       = module.acr.admin_password
 }
 
 module "static_web" {
@@ -54,11 +84,5 @@ module "static_web" {
   location      = var.location
   repo_url      = var.repo_url
   branch        = "main"
-  custom_domain = var.custom_domain
-}
-
-module "acr" {
-  source   = "./modules/acr"
-  rg_name  = var.rg_name
-  location = var.location
+  github_token  = var.github_token
 }

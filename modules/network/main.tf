@@ -13,12 +13,7 @@ resource "azurerm_subnet" "backend" {
   address_prefixes     = ["10.3.0.0/16"]
 }
 
-resource "azurerm_subnet" "db" {
-  name                 = "snet-db-cloudkit-dev-east2"
-  resource_group_name  = var.rg_name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.2.0.0/26"]
-}
+
 
 resource "azurerm_nat_gateway" "nat" {
   name                = "nat-cloudkit-dev-east2"
@@ -43,4 +38,13 @@ resource "azurerm_nat_gateway_public_ip_association" "assoc" {
 resource "azurerm_subnet_nat_gateway_association" "backend_nat" {
   subnet_id      = azurerm_subnet.backend.id
   nat_gateway_id = azurerm_nat_gateway.nat.id
+}
+
+
+resource "azurerm_private_dns_zone_virtual_network_link" "postgres_link" {
+  name                  = "dns-link-cloudkit-dev-east2"
+  resource_group_name   = var.rg_name
+  private_dns_zone_name = azurerm_private_dns_zone.postgres.name
+  virtual_network_id    = azurerm_virtual_network.vnet.id
+  registration_enabled  = false
 }

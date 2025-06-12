@@ -22,3 +22,7 @@ variable "repo_url" {
 variable "custom_domain" {
   default = ""
 }
+variable "github_token" {
+  description = "GitHub Personal Access Token"
+  sensitive   = true
+}

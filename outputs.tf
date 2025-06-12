@@ -15,10 +15,6 @@ output "postgres_server_name" {
   value = module.postgres.postgres_server_name
 }
 
-output "postgres_fqdn" {
-  value = module.postgres.db_host
-}
-
 output "key_vault_name" {
   value = module.key_vault.key_vault_name
 }
@@ -31,14 +27,14 @@ output "container_app_url" {
   value = module.container_apps.backend_url
 }
 
-output "static_web_url" {
-  value = module.static_web.web_url
-}
-
 output "postgres_fqdn" {
   value = module.postgres.db_host
 }
 
 output "static_web_url" {
   value = module.static_web.web_url
+}
+
+output "postgres_name" {
+  value = module.postgres.postgres_server_name
 }

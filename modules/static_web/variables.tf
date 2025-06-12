@@ -7,3 +7,7 @@ variable "branch" {
 variable "custom_domain" {
   default = ""
 }
+variable "github_token" {
+  description = "GitHub PAT with repo and workflow scope"
+  sensitive   = true
+}
