@@ -5,7 +5,7 @@ This repository contains the Terraform configuration for deploying the full Clou
 
 ## 📐 Architecture Diagram
 
-![CloudKit Azure Infra](https://strepamkkeast2.blob.core.windows.net/kodekloud-inputs/cloudkit-terraform-diagram-v2.png)
+![CloudKit Azure Infra](https://strepamkkeast2.blob.core.windows.net/kodekloud-inputs/cloudkit-terraform-diagram-v2.png?sp=r&st=2025-06-12T19:46:17Z&se=2026-04-01T03:46:17Z&sv=2024-11-04&sr=b&sig=FtRKXz1N9KStHIRqPudDufSVP3xP3zWJnFwC2lzKQkQ%3D)
 
 ## 🚀 Modules Overview
 
