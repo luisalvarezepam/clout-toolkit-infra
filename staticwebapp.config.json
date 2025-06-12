@@ -1,0 +1,8 @@
+{
+  "routes": [
+    {
+      "route": "/api/*",
+      "rewrite": "https://ca-backend-cloudkit-dev-east2.region.containers.app.azure.com/api/*"
+    }
+  ]
+}
