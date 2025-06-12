@@ -34,3 +34,11 @@ output "container_app_url" {
 output "static_web_url" {
   value = module.static_web.web_url
 }
+
+output "postgres_fqdn" {
+  value = module.postgres.db_host
+}
+
+output "static_web_url" {
+  value = module.static_web.web_url
+}

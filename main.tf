@@ -56,3 +56,9 @@ module "static_web" {
   branch        = "main"
   custom_domain = var.custom_domain
 }
+
+module "acr" {
+  source   = "./modules/acr"
+  rg_name  = var.rg_name
+  location = var.location
+}
