@@ -2,8 +2,8 @@ terraform {
   required_version = ">= 1.3.0"
 
   backend "azurerm" {
-    resource_group_name  = "rg-cloudkit-dev-east2"
-    storage_account_name = "cloudkitterraformxyz"
+    resource_group_name  = "rg-cloudkit-dev-central"
+    storage_account_name = "cloudkitterraforcentr"
     container_name       = "tfstate"
     key                  = "cloudkit-infra.tfstate"
   }
@@ -11,13 +11,14 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 3.42.0"
+      version = ">= 3.91.0"
     }
   }
 }
 
 provider "azurerm" {
   features {}
+  subscription_id = "917c94ac-3402-40a8-a538-5f1d44da029a" #
 }
 
 module "network" {
@@ -30,14 +31,19 @@ module "postgres" {
   source              = "./modules/postgres"
   rg_name             = var.rg_name
   location            = var.location
-  admin_user          = var.pg_admin_user
-  admin_password      = var.pg_admin_password
   db_name             = var.db_name
   app_user            = var.app_user
   app_password        = var.app_password
-  db_subnet_id        = module.network.db_subnet_id
   private_dns_zone_id = module.network.private_dns_zone_id
+  postgres_subnet_id  = module.network.subnet_db_id
+  admin_user          = module.key_vault.postgres_admin_user.value
+  admin_password      = module.key_vault.postgres_admin_password.value
+  key_vault_name      = module.key_vault.name
+  db_subnet_id        = module.network.subnet_db_id
+  
 }
+
+
 
 module "key_vault" {
   source            = "./modules/key_vault"
@@ -50,9 +56,10 @@ module "key_vault" {
 }
 
 module "acr" {
-  source   = "./modules/acr"
-  rg_name  = var.rg_name
-  location = var.location
+  source          = "./modules/acr"
+  rg_name         = var.rg_name
+  location        = var.location
+  resource_suffix = local.resource_suffix
 }
 
 module "container_env" {
@@ -86,3 +93,4 @@ module "static_web" {
   branch        = "main"
   github_token  = var.github_token
 }
+

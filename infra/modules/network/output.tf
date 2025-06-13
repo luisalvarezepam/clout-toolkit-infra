@@ -13,3 +13,7 @@ output "vnet_name" {
 output "private_dns_zone_id" {
   value = azurerm_private_dns_zone.postgres.id
 }
+
+output "subnet_db_id" {
+  value = azurerm_subnet.db.id
+}

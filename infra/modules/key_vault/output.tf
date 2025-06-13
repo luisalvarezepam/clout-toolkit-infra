@@ -7,3 +7,14 @@ output "key_vault_id" {
 output "key_vault_name" {
   value = azurerm_key_vault.kv.name
 }
+
+output "postgres_admin_password" {
+  value = azurerm_key_vault_secret.pg_admin_password.value
+}
+
+output "app_user_password" {
+  value = azurerm_key_vault_secret.app_user_password.value
+}
+
+
+

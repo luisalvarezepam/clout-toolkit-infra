@@ -1,3 +1,3 @@
 output "web_url" {
-  value = azurerm_static_site.frontend.default_host_name
+  value = azurerm_static_web_app.frontend.default_host_name
 }

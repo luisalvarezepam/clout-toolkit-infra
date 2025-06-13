@@ -13,32 +13,34 @@ terraform {
   required_version = ">= 1.3.0"
 }
 
+
+
 resource "azurerm_postgresql_flexible_server" "postgres" {
-  name                   = "postgres-cloudkit-dev-east2"
-  resource_group_name    = var.rg_name
+  name                   = "postgres-${local.resource_suffix}"
   location               = var.location
-  administrator_login    = var.admin_user
-  administrator_password = var.admin_password
-  sku_name               = "GP_Standard_D2s_v3"
-  version                = "15"
+  resource_group_name    = var.rg_name
+  administrator_login    = "adminuser"
+  administrator_password = data.azurerm_key_vault_secret.pg_admin_password.value
+  version                = "13"
+  sku_name               = "B1ms"
   storage_mb             = 32768
-  backup_retention_days  = 7
   zone                   = "1"
-
-  high_availability {
-    mode = "ZoneRedundant"
-  }
-
-  network {
-    delegated_subnet_id = var.db_subnet_id
-    private_dns_zone_id = var.private_dns_zone_id
-  }
+  public_network_access_enabled = false
+  delegated_subnet_id           = var.postgres_subnet_id
+  private_dns_zone_id           = var.private_dns_zone_id
 
   tags = {
-    environment = "dev"
-    project     = "cloudkit"
+    environment = local.environment
+    project     = local.project
+  }
+
+  lifecycle {
+    ignore_changes = [
+      zone
+    ]
   }
 }
+
 
 resource "azurerm_postgresql_flexible_server_database" "db" {
   name      = var.db_name
@@ -50,8 +52,8 @@ resource "azurerm_postgresql_flexible_server_database" "db" {
 provider "postgresql" {
   host            = azurerm_postgresql_flexible_server.postgres.fqdn
   port            = 5432
-  username        = "${var.admin_user}@${azurerm_postgresql_flexible_server.postgres.name}"
-  password        = var.admin_password
+  username        = "adminuser@${azurerm_postgresql_flexible_server.postgres.name}"
+  password        = data.azurerm_key_vault_secret.pg_admin_password.value
   sslmode         = "require"
   connect_timeout = 15
 }
@@ -68,3 +70,4 @@ resource "postgresql_grant" "grant_all" {
   object_type = "database"
   privileges  = ["CONNECT", "TEMPORARY"]
 }
+

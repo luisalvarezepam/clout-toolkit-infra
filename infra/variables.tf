@@ -1,6 +1,6 @@
 
 variable "rg_name" {
-  default = "rg-cloudkit-dev-east2"
+  default = "rg-cloudkit-dev-central"
 }
 variable "location" {
   default = "eastus2"

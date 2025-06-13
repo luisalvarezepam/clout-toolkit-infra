@@ -1,35 +1,17 @@
-resource "azurerm_static_site" "frontend" {
-  name                = "swa-cloudkit-dev-east2"
-  location            = var.location
+resource "azurerm_static_web_app" "frontend" {
+  name                = "swa-${local.resource_suffix}"
   resource_group_name = var.rg_name
+  location            = var.location
+  sku_tier            = "Standard"
+  sku_size            = "Standard"
 
   identity {
     type = "SystemAssigned"
   }
 
   tags = {
-    environment = "dev"
-    project     = "cloudkit"
+    environment = local.environment
+    project     = local.project
   }
 }
 
-resource "azurerm_static_site_github_action" "github_ci" {
-  static_site_id = azurerm_static_site.frontend.id
-
-  repo_url     = var.repo_url
-  branch       = var.branch
-  github_token = var.github_token
-
-  build_properties {
-    app_location    = "/"
-    output_location = "dist"
-  }
-}
-
-
-resource "azurerm_static_site_custom_domain" "custom" {
-  count               = var.custom_domain == "" ? 0 : 1
-  static_site_id      = azurerm_static_site.frontend.id
-  domain_name         = var.custom_domain
-  validation_type     = "dns-txt-token"
-}

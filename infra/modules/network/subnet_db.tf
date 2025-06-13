@@ -1,8 +1,8 @@
 resource "azurerm_subnet" "db" {
-  name                 = "snet-db-cloudkit-dev-east2"
+  name                 = "snet-db-${local.resource_suffix}"
   resource_group_name  = var.rg_name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.2.0.0/26"]
+  address_prefixes     = ["10.0.2.0/26"]
 
   delegation {
     name = "postgresql-delegation"

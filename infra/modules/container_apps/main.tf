@@ -1,5 +1,5 @@
 resource "azurerm_container_app" "backend" {
-  name                         = "ca-backend-cloudkit-dev-east2"
+  name                         = "ca-backend-${local.resource_suffix}"
   container_app_environment_id = var.env_id
   resource_group_name          = var.rg_name
   revision_mode                = "Single"
@@ -39,11 +39,11 @@ resource "azurerm_container_app" "backend" {
   registry {
     server   = var.acr_login_server
     username = var.acr_username
-    password = var.acr_password
+    password_secret_name = var.acr_password
   }
 
   tags = {
-    environment = "dev"
-    project     = "cloudkit"
+    environment = local.environment
+    project     = local.project
   }
 }
