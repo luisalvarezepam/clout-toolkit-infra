@@ -18,7 +18,35 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = "917c94ac-3402-40a8-a538-5f1d44da029a" #
+  subscription_id = "917c94ac-3402-40a8-a538-5f1d44da029a"
+}
+
+module "key_vault" {
+  source            = "./modules/key_vault"
+  rg_name           = var.rg_name
+  location          = var.location
+  tenant_id         = var.tenant_id
+  admin_object_id   = var.admin_object_id
+  pg_admin_password = var.pg_admin_password
+  app_password      = var.app_password
+}
+
+data "azurerm_key_vault" "main" {
+  name                = module.key_vault.key_vault_name
+  resource_group_name = var.rg_name
+  depends_on          = [module.key_vault]
+}
+
+data "azurerm_key_vault_secret" "pg_admin_password" {
+  name         = "pg-admin-password"
+  key_vault_id = data.azurerm_key_vault.main.id
+  depends_on   = [module.key_vault]
+}
+
+data "azurerm_key_vault_secret" "app_user_password" {
+  name         = "pg-app-password"
+  key_vault_id = data.azurerm_key_vault.main.id
+  depends_on   = [module.key_vault]
 }
 
 module "network" {
@@ -33,26 +61,13 @@ module "postgres" {
   location            = var.location
   db_name             = var.db_name
   app_user            = var.app_user
-  app_password        = var.app_password
-  private_dns_zone_id = module.network.private_dns_zone_id
+  app_password        = data.azurerm_key_vault_secret.app_user_password.value
+  admin_user          = "adminuser"
+  admin_password      = data.azurerm_key_vault_secret.pg_admin_password.value
+  private_dns_zone_id = module.network.private_dns_zone_postgres_id
   postgres_subnet_id  = module.network.subnet_db_id
-  admin_user          = module.key_vault.postgres_admin_user.value
-  admin_password      = module.key_vault.postgres_admin_password.value
-  key_vault_name      = module.key_vault.name
   db_subnet_id        = module.network.subnet_db_id
-  
-}
-
-
-
-module "key_vault" {
-  source            = "./modules/key_vault"
-  rg_name           = var.rg_name
-  location          = var.location
-  tenant_id         = var.tenant_id
-  admin_object_id   = var.admin_object_id
-  pg_admin_password = var.pg_admin_password
-  app_password      = var.app_password
+  key_vault_name      = module.key_vault.key_vault_name
 }
 
 module "acr" {
@@ -66,7 +81,7 @@ module "container_env" {
   source            = "./modules/container_env"
   rg_name           = var.rg_name
   location          = var.location
-  backend_subnet_id = module.network.backend_subnet_id
+  backend_subnet_id = module.network.subnet_cae_id
 }
 
 module "container_apps" {
@@ -93,4 +108,3 @@ module "static_web" {
   branch        = "main"
   github_token  = var.github_token
 }
-

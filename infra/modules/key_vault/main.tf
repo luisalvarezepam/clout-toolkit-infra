@@ -1,5 +1,3 @@
-# modules/key_vault/main.tf
-
 resource "azurerm_key_vault" "kv" {
   name                        = "kv-${local.resource_suffix}"
   location                    = var.location
@@ -8,15 +6,7 @@ resource "azurerm_key_vault" "kv" {
   sku_name                    = "standard"
   purge_protection_enabled    = true
   soft_delete_retention_days  = 7
-
-  access_policy {
-    tenant_id = var.tenant_id
-    object_id = var.admin_object_id  # Usuario que ejecuta Terraform
-
-    secret_permissions = [
-      "Get", "List", "Set", "Delete", "Purge", "Recover"
-    ]
-  }
+  enable_rbac_authorization   = true  # ✅ Activar RBAC
 
   tags = {
     environment = local.environment
@@ -24,6 +14,7 @@ resource "azurerm_key_vault" "kv" {
   }
 }
 
+# Identidad administrada (para funciones, etc.)
 resource "azurerm_user_assigned_identity" "cloudkit_identity" {
   name                = "uami-cloudkit-${local.resource_suffix}"
   location            = var.location
@@ -32,40 +23,41 @@ resource "azurerm_user_assigned_identity" "cloudkit_identity" {
 
 data "azurerm_client_config" "current" {}
 
-resource "azurerm_key_vault_access_policy" "identity_policy" {
-  key_vault_id = azurerm_key_vault.kv.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_user_assigned_identity.cloudkit_identity.principal_id
-
-  secret_permissions = [
-    "Get", "Set", "List", "Delete"
-  ]
+# ✅ Permitir a Terraform acceder al Key Vault
+resource "azurerm_role_assignment" "terraform_user" {
+  scope                = azurerm_key_vault.kv.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+  
+  lifecycle {
+    ignore_changes = [role_definition_name, scope, principal_id]
+  }
 }
 
-# Opcional si quieres usar RBAC en lugar de access_policy:
-# resource "azurerm_role_assignment" "keyvault_access" {
-#   scope                = azurerm_key_vault.kv.id
-#   role_definition_name = "Key Vault Secrets Officer"
-#   principal_id         = azurerm_user_assigned_identity.cloudkit_identity.principal_id
-# }
+# ✅ Permitir a la identidad administrada acceder al Key Vault
+resource "azurerm_role_assignment" "cloudkit_identity_access" {
+  scope                = azurerm_key_vault.kv.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.cloudkit_identity.principal_id
+}
 
+# ✅ Secretos
 resource "azurerm_key_vault_secret" "pg_admin_password" {
   name         = "pg-admin-password"
   value        = var.pg_admin_password
   key_vault_id = azurerm_key_vault.kv.id
-
-  depends_on = [
-    azurerm_key_vault_access_policy.identity_policy
-  ]
 }
 
 resource "azurerm_key_vault_secret" "app_user_password" {
   name         = "pg-app-password"
   value        = var.app_password
   key_vault_id = azurerm_key_vault.kv.id
-
-  depends_on = [
-    azurerm_key_vault_access_policy.identity_policy
-  ]
 }
+
+resource "azurerm_role_assignment" "tf_kv_rbac" {
+  scope = azurerm_key_vault.kv.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
 

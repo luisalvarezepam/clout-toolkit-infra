@@ -20,9 +20,9 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   location               = var.location
   resource_group_name    = var.rg_name
   administrator_login    = "adminuser"
-  administrator_password = data.azurerm_key_vault_secret.pg_admin_password.value
+  administrator_password = var.admin_password
   version                = "13"
-  sku_name               = "B1ms"
+  sku_name               = "B_Standard_B1ms"
   storage_mb             = 32768
   zone                   = "1"
   public_network_access_enabled = false
@@ -53,7 +53,7 @@ provider "postgresql" {
   host            = azurerm_postgresql_flexible_server.postgres.fqdn
   port            = 5432
   username        = "adminuser@${azurerm_postgresql_flexible_server.postgres.name}"
-  password        = data.azurerm_key_vault_secret.pg_admin_password.value
+  password        = var.admin_password
   sslmode         = "require"
   connect_timeout = 15
 }

@@ -10,16 +10,42 @@ resource "azurerm_subnet" "backend" {
   name                 = "snet-backend-${local.resource_suffix}"
   resource_group_name  = var.rg_name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/23"]
+  address_prefixes     = ["10.0.4.0/23"]
+  delegation {
+    name = "containerapp-delegation"
+    service_delegation {
+      name = "Microsoft.App/environments"
+      actions = [
+        "Microsoft.Network/virtualNetworks/subnets/action"
+      ]
+    }
+  }
 }
 
 
+
+resource "azurerm_subnet" "cae" {
+  name                 = "snet-cae-${local.resource_suffix}"
+  resource_group_name  = var.rg_name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.6.0/23"]
+  delegation {
+    name = "delegation"
+    service_delegation {
+      name    = "Microsoft.App/environments"
+      actions = [
+        "Microsoft.Network/virtualNetworks/subnets/join/action"
+      ]
+    }
+  }
+}
 
 resource "azurerm_nat_gateway" "nat" {
   name                = "nat-${local.resource_suffix}"
   resource_group_name = var.rg_name
   location            = var.location
   sku_name            = "Standard"
+  
 }
 
 resource "azurerm_public_ip" "nat_ip" {
@@ -41,6 +67,7 @@ resource "azurerm_subnet_nat_gateway_association" "backend_nat" {
 }
 
 
+
 resource "azurerm_private_dns_zone_virtual_network_link" "postgres_link" {
   name                  = "dns-link-${local.resource_suffix}"
   resource_group_name   = var.rg_name
@@ -48,3 +75,4 @@ resource "azurerm_private_dns_zone_virtual_network_link" "postgres_link" {
   virtual_network_id    = azurerm_virtual_network.vnet.id
   registration_enabled  = false
 }
+
