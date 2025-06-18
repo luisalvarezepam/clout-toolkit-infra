@@ -1,85 +1,98 @@
-# ☁️ CloudKit Azure Infrastructure
 
-This repository contains the Infrastructure as Code (IaC) definition using **Terraform** for the CloudKit solution on **Microsoft Azure**.
+# CloudKit Azure Infrastructure
 
-## ✅ Infrastructure Components (Provisioned)
+This repository contains the Terraform-based Infrastructure as Code (IaC) for the **CloudKit** project, deployed on Microsoft Azure.
 
-| Component         | Azure Service                          | Description                                              |
-|------------------|----------------------------------------|----------------------------------------------------------|
-| Virtual Network  | Azure Virtual Network                  | Includes subnets for public, private, and database zones |
-| Key Vault        | Azure Key Vault                        | Secure secrets and credentials                          |
-| Container Registry | Azure Container Registry (ACR)       | Store private container images                           |
-| PostgreSQL DB    | Azure Database for PostgreSQL Flexible | Managed database with VNet integration                   |
-| Backend App      | Azure Container Apps                   | Runs backend image with private ACR and identity         |
-| Worker App       | Azure Container Apps                   | Runs async tasks or scheduled jobs                       |
-| Frontend         | Azure Web App for Containers           | Dockerized React/Vite frontend, served from Linux Plan   |
-| Observability    | Azure Log Analytics + Diagnostics      | Logs and metrics for backend and worker apps             |
-| Storage          | Azure Blob Storage                     | Stores reports, XLSX inputs, JSON outputs                |
-| Networking       | NAT Gateway + NSG Rules                | Outbound internet and subnet isolation                   |
+## 📌 Architecture Overview
 
-## 🔄 CI/CD Workflows
+The infrastructure is designed with modularity, security, and scalability in mind. It includes components for backend processing, frontend delivery, observability, and secure networking.
 
-| Name                        | Type       | Description                               |
-|-----------------------------|------------|-------------------------------------------|
-| `terraform-deploy.yml`      | Push/manual | Provisions all infra using Terraform       |
-| `deploy_container_app.yml`  | Manual     | Updates backend container app image        |
-| `deploy_container_worker.yml` | Manual   | Updates worker container app image         |
-| `deploy_webapp_frontend.yml` | Manual   | Updates frontend web app image             |
+![CloudKit Architecture](https://cloudkitterraforcentr.blob.core.windows.net/images/ChatGPT%20Image%20Jun%2018%2C%202025%2C%2011_39_53%20AM.png?sp=r&st=2025-06-18T17:43:31Z&se=2026-03-01T01:43:31Z&sv=2024-11-04&sr=b&sig=ar3vocnoozDCKjJEL9dan5%2BbDKsLW9GPARVhHbk2H34%3D)
 
-> All workflows use GitHub Actions with `AZURE_CREDENTIALS` secret configured.
+---
 
-## 📁 Repo Structure
+## ✅ Provisioned Azure Components
+
+| Component            | Azure Service                         | Purpose / Features                                                                 |
+|---------------------|---------------------------------------|-------------------------------------------------------------------------------------|
+| **Frontend**         | Azure Web App                         | Hosts the frontend container; deployed from GitHub Actions                          |
+| **Backend**          | Azure Container Apps                  | Scalable API container hosted in private subnet                                     |
+| **Worker**           | Azure Container Apps                  | Executes background jobs and automation logic                                       |
+| **Database**         | Azure Database for PostgreSQL Flexible| Highly available relational database; VNet integrated                               |
+| **Container Registry** | Azure Container Registry (ACR)     | Private registry for Docker images                                                  |
+| **Secrets & Keys**   | Azure Key Vault                       | Secure storage for sensitive values like DB passwords and API keys                 |
+| **Storage**          | Azure Blob Storage                    | For input Excel files and generated JSON reports                                    |
+| **Networking**       | Azure Virtual Network (VNet)          | Includes public, private, and DB subnets                                            |
+| **Security**         | NSG (Network Security Groups)         | Subnet-level access control                                                         |
+| **Observability**    | Azure Monitor + Log Analytics         | Logs, metrics, and diagnostics for apps                                             |
+| **CI/CD**            | GitHub Actions                        | Builds and deploys infra and application containers                                 |
+
+---
+
+## 🛠️ Getting Started
+
+### Prerequisites
+
+- Terraform ≥ 1.8
+- Azure CLI
+- Azure Subscription with permissions
+- GitHub repository with the following secrets configured:
+
+| Secret Name                    | Description                        |
+|-------------------------------|------------------------------------|
+| `ARM_CLIENT_ID`               | Client ID of the service principal |
+| `ARM_CLIENT_SECRET`           | Client secret                      |
+| `ARM_SUBSCRIPTION_ID`         | Azure subscription ID              |
+| `ARM_TENANT_ID`               | Azure tenant ID                    |
+| `ADMIN_OBJECT_ID`             | Object ID of the admin user        |
+| `APP_REGISTRATION_OBJECT_ID` | Object ID of the App Registration  |
+
+### Commands
+
+```bash
+cd infra
+terraform init
+terraform plan
+terraform apply
+```
+
+---
+
+## 📁 Project Structure
 
 ```
 .
-├── infra/                     # Terraform code
-│   ├── main.tf               # Root module
-│   ├── modules/              # Modularized infra components
-│   └── variables.tf / outputs.tf / ...
-├── scripts/                  # Utility Python scripts (ignored via .gitignore)
-├── .github/workflows/       # GitHub Actions pipelines
-├── .gitignore               # Ignores Terraform files & scripts
-└── README.md                # This file
+├── infra/
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── outputs.tf
+│   ├── modules/
+│   │   ├── network/
+│   │   ├── key_vault/
+│   │   ├── acr/
+│   │   ├── blob_storage/
+│   │   ├── postgres/
+│   │   ├── container_apps/
+│   │   ├── container_worker/
+│   │   ├── diagnostic_setting/
+│   │   ├── log_analytics/
+│   │   └── web_app_frontend/
+├── .github/workflows/
+│   └── ci-cd.yaml
+├── .gitignore
+└── README.md
 ```
 
-## 🛡 Required GitHub Secrets
+---
 
-These secrets must be configured in the GitHub repository:
+## 🔄 Next Steps
 
-| Name                        | Description                          |
-|-----------------------------|--------------------------------------|
-| `AZURE_CREDENTIALS`         | JSON service principal credentials   |
-| `ARM_CLIENT_ID`             | Azure Client ID                      |
-| `ARM_CLIENT_SECRET`         | Azure Client Secret                  |
-| `ARM_SUBSCRIPTION_ID`       | Subscription ID                      |
-| `ARM_TENANT_ID`             | Tenant ID                            |
-| `ADMIN_OBJECT_ID`           | Terraform admin's object ID          |
-| `APP_REGISTRATION_OBJECT_ID` | App registration identity object ID |
-
-## 🚀 Quick Start
-
-1. Clone the repo and go into the `infra/` directory.
-2. Ensure secrets are set in GitHub for workflows.
-3. To deploy manually:
-    ```bash
-    cd infra
-    terraform init
-    terraform plan
-    terraform apply
-    ```
-4. To deploy images:
-    - Go to GitHub → Actions → Run `Deploy Container App`, `Deploy Container Worker`, or `Deploy Web App Frontend`.
+- Add GitHub Actions pipeline for `web_app_frontend` and `container_worker`
+- Optional: Configure custom domain and Azure DNS
+- Optional: Add NAT Gateway if outbound static IP is needed
 
 ---
 
-## 🗺 Architecture Diagram
+## 🧾 License
 
-![Architecture](https://strepamkkeast2.blob.core.windows.net/kodekloud-inputs/ChatGPT%20Image%20Jun%2017%2C%202025%2C%2007_41_31%20PM.png?sp=r&st=2025-06-17T22:46:07Z&se=2026-02-28T07:04:40Z&sv=2024-11-04&sr=b&sig=8NO3nGnPEWJ3CvqKqDYGRU1dJ8Z8F3MSAfRMvPz7%2FhM%3D)
-
----
-
-## 📌 Notes
-
-- Terraform state is stored remotely using Azure Storage Account.
-- Backends and container apps are deployed with system-assigned identity.
-- Web app currently expects a prebuilt Docker image.
+MIT License
