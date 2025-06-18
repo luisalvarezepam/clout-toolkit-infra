@@ -10,41 +10,19 @@ env:
   ACR_IMAGE: acrcloudkitdevcus.azurecr.io/cloudkit-backend:latest
 
 jobs:
-  terraform_apply:
+  configure_containerapp:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: infra
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.8.5
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Apply (fase 1 - imagen pública)
-        run: terraform apply -auto-approve
-
-  configure_containerapp:
-    runs-on: ubuntu-latest
-    needs: terraform_apply
-    steps:
       - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Set up Azure CLI
-        uses: azure/cli@v1
-        with:
-          inlineScript: echo "Azure CLI set up"
-
-      - name: Wait and set ACR identity
+      - name: Wait and check Container App state
         run: |
           echo "🔄 Esperando a que Container App esté completamente provisionado..."
           for i in {1..15}; do
@@ -73,8 +51,6 @@ jobs:
 
             sleep 10
           done
-
-     
 
       - name: Asignar rol AcrPull al Container App
         run: |
