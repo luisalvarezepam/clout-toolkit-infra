@@ -9,17 +9,25 @@ variable "tenant_id" {
 }
 
 variable "admin_object_id" {
+  description = "Object ID del administrador"
   type        = string
-  description = "Object ID de tu usuario admin (para acceso completo al Key Vault)"
+  sensitive   = true
 }
 
 variable "app_registration_object_id" {
+  description = "Object ID del App Registration"
   type        = string
-  description = "Object ID del App Registration que usa Terraform"
+  sensitive   = true
 }
 
 variable "use_private_image" {
   type        = bool
   description = "Define si se debe usar imagen privada del ACR o una pública temporal"
   default     = false
+}
+
+variable "subscription_id" {
+  description = "Azure subscription ID"
+  type        = string
+  sensitive   = true
 }
