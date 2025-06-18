@@ -163,3 +163,13 @@ resource "azurerm_key_vault_access_policy" "web_app_policy" {
   secret_permissions = ["Get", "List"]
 }
 
+module "network_security" {
+  source              = "./modules/network_security"
+  name_suffix         = local.name_suffix
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  subnet_prefixes     = module.network.subnet_prefixes
+  subnet_ids          = module.network.subnet_ids
+  tags                = local.tags
+}
+

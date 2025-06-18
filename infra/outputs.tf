@@ -44,3 +44,7 @@ output "web_app_hostname" {
   description = "Hostname público del Web App"
   value       = module.web_app_frontend.web_app_default_hostname
 }
+
+output "subnet_prefixes" {
+  value = module.network.subnet_prefixes
+}

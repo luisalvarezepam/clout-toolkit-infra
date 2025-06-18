@@ -9,3 +9,13 @@ output "subnet_ids" {
     db      = azurerm_subnet.db.id
   }
 }
+
+output "subnet_prefixes" {
+  value = {
+    public  = azurerm_subnet.public.address_prefixes[0]
+    private = azurerm_subnet.private.address_prefixes[0]
+    db      = azurerm_subnet.db.address_prefixes[0]
+  }
+}
+
+
