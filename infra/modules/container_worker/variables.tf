@@ -17,14 +17,15 @@ variable "container_app_environment_id" {
 }
 
 variable "image" {
+  description = "Container image to use"
   type        = string
-  description = "Ruta completa de la imagen"
-  default     = ""
+
   validation {
-    condition     = can(regex("^.+\\.azurecr\\.io/.+:.+$", var.image)) || var.use_private_image == false
-    error_message = "La imagen debe tener formato 'acrname.azurecr.io/imagen:tag' si 'use_private_image' es true."
+    condition     = can(regex("^.+\\/.+:.+$", var.image))
+    error_message = "Image must follow the format: registry/image:tag"
   }
 }
+
 
 variable "key_vault_uri" {
   type = string
