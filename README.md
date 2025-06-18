@@ -1,90 +1,85 @@
-# 🌩️ CloudKit Azure Infrastructure
+# ☁️ CloudKit Azure Infrastructure
 
-This repository contains the infrastructure as code (IaC) for the **CloudKit** project, deployed on Microsoft Azure using Terraform and modular architecture.
+This repository contains the Infrastructure as Code (IaC) definition using **Terraform** for the CloudKit solution on **Microsoft Azure**.
 
----
+## ✅ Infrastructure Components (Provisioned)
 
-## 🧱 Overall Architecture
+| Component         | Azure Service                          | Description                                              |
+|------------------|----------------------------------------|----------------------------------------------------------|
+| Virtual Network  | Azure Virtual Network                  | Includes subnets for public, private, and database zones |
+| Key Vault        | Azure Key Vault                        | Secure secrets and credentials                          |
+| Container Registry | Azure Container Registry (ACR)       | Store private container images                           |
+| PostgreSQL DB    | Azure Database for PostgreSQL Flexible | Managed database with VNet integration                   |
+| Backend App      | Azure Container Apps                   | Runs backend image with private ACR and identity         |
+| Worker App       | Azure Container Apps                   | Runs async tasks or scheduled jobs                       |
+| Frontend         | Azure Web App for Containers           | Dockerized React/Vite frontend, served from Linux Plan   |
+| Observability    | Azure Log Analytics + Diagnostics      | Logs and metrics for backend and worker apps             |
+| Storage          | Azure Blob Storage                     | Stores reports, XLSX inputs, JSON outputs                |
+| Networking       | NAT Gateway + NSG Rules                | Outbound internet and subnet isolation                   |
 
-![CloudKit Architecture](https://strepamkkeast2.blob.core.windows.net/kodekloud-inputs/CloudKit%20Azure%20Infra.png)
+## 🔄 CI/CD Workflows
 
----
+| Name                        | Type       | Description                               |
+|-----------------------------|------------|-------------------------------------------|
+| `terraform-deploy.yml`      | Push/manual | Provisions all infra using Terraform       |
+| `deploy_container_app.yml`  | Manual     | Updates backend container app image        |
+| `deploy_container_worker.yml` | Manual   | Updates worker container app image         |
+| `deploy_webapp_frontend.yml` | Manual   | Updates frontend web app image             |
 
-## ✅ Deployed Components
+> All workflows use GitHub Actions with `AZURE_CREDENTIALS` secret configured.
 
-| Component         | Azure Service                         | Type            | Description                                         |
-|------------------|----------------------------------------|------------------|-----------------------------------------------------|
-| **Frontend**      | Azure Web App (Linux)                 | Web Hosting     | Deployed in App Service Plan (B1 tier)             |
-| **Backend API**   | Azure Container Apps                  | Container PaaS  | Exposes API, integrated with ACR and Key Vault     |
-| **Worker**        | Azure Container Apps                  | Background Job  | Executes asynchronous tasks                        |
-| **Database**      | PostgreSQL Flexible Server            | DBaaS           | Private access from VNet                           |
-| **Networking**    | Virtual Network with Subnets          | Networking      | Public, private, and DB subnets                    |
-| **Secrets**       | Azure Key Vault                       | Security        | Secure secrets and connection strings              |
-| **Registry**      | Azure Container Registry (ACR)        | Container Images| Stores private container images                    |
-| **Monitoring**    | Log Analytics + Diagnostic Settings   | Observability   | Logs enabled for backend and worker apps           |
-
----
-
-## 📂 Repository Structure
+## 📁 Repo Structure
 
 ```
-├── infra/                        # Terraform IaC code
-│   ├── modules/
-│   └── main.tf, outputs.tf, ...
-├── backend/                      # Backend containerized app
-│   ├── Dockerfile
-│   └── app/
-├── .github/workflows/           # CI/CD workflows
-│   └── deploy-backend.yml
-└── README.md
+.
+├── infra/                     # Terraform code
+│   ├── main.tf               # Root module
+│   ├── modules/              # Modularized infra components
+│   └── variables.tf / outputs.tf / ...
+├── scripts/                  # Utility Python scripts (ignored via .gitignore)
+├── .github/workflows/       # GitHub Actions pipelines
+├── .gitignore               # Ignores Terraform files & scripts
+└── README.md                # This file
 ```
 
----
+## 🛡 Required GitHub Secrets
 
-## ⚙️ Required Terraform Environment Variables
+These secrets must be configured in the GitHub repository:
 
-Before using `terraform`, configure the following:
+| Name                        | Description                          |
+|-----------------------------|--------------------------------------|
+| `AZURE_CREDENTIALS`         | JSON service principal credentials   |
+| `ARM_CLIENT_ID`             | Azure Client ID                      |
+| `ARM_CLIENT_SECRET`         | Azure Client Secret                  |
+| `ARM_SUBSCRIPTION_ID`       | Subscription ID                      |
+| `ARM_TENANT_ID`             | Tenant ID                            |
+| `ADMIN_OBJECT_ID`           | Terraform admin's object ID          |
+| `APP_REGISTRATION_OBJECT_ID` | App registration identity object ID |
 
-```bash
-export ARM_CLIENT_ID="<appId>"
-export ARM_CLIENT_SECRET="<secret>"
-export ARM_SUBSCRIPTION_ID="<subId>"
-export ARM_TENANT_ID="<tenantId>"
-```
+## 🚀 Quick Start
 
----
-
-## 🚀 Backend CI/CD - GitHub Actions
-
-Automated deployment is handled via GitHub Actions. On push to `main`, the Docker image is built and deployed to Azure Container Apps.
-
-### 🔐 Required GitHub Secrets:
-
-- `AZURE_CLIENT_ID`
-- `AZURE_CLIENT_SECRET`
-- `AZURE_TENANT_ID`
-- `AZURE_SUBSCRIPTION_ID`
-- `ACR_LOGIN_SERVER`
-- `RESOURCE_GROUP`
-- `CONTAINER_APP_NAME`
-
-Workflow path:  
-📁 `.github/workflows/deploy-backend.yml`
+1. Clone the repo and go into the `infra/` directory.
+2. Ensure secrets are set in GitHub for workflows.
+3. To deploy manually:
+    ```bash
+    cd infra
+    terraform init
+    terraform plan
+    terraform apply
+    ```
+4. To deploy images:
+    - Go to GitHub → Actions → Run `Deploy Container App`, `Deploy Container Worker`, or `Deploy Web App Frontend`.
 
 ---
 
-## 🚧 Pending Tasks
+## 🗺 Architecture Diagram
 
-| Task                                  | Status                |
-|---------------------------------------|------------------------|
-| CI/CD for Frontend and Worker         | 🔜 Waiting for code    |
-| WAF or Load Balancer for ingress      | ⏳ Pending             |
-| Refined NSG rules                     | ⏳ Pending             |
-| Additional Storage for reports/files  | 🔜 Considered optional |
-| Azure DNS                             | ❌ Skipped due to cost |
+![Architecture](https://strepamkkeast2.blob.core.windows.net/kodekloud-inputs/ChatGPT%20Image%20Jun%2017%2C%202025%2C%2007_41_31%20PM.png?sp=r&st=2025-06-17T22:46:07Z&se=2026-02-28T07:04:40Z&sv=2024-11-04&sr=b&sig=8NO3nGnPEWJ3CvqKqDYGRU1dJ8Z8F3MSAfRMvPz7%2FhM%3D)
 
 ---
 
-## 📞 Contact
+## 📌 Notes
 
-For more information, contact the infrastructure architect or DevOps engineer of the project.
+- Terraform state is stored remotely using Azure Storage Account.
+- Backends and container apps are deployed with system-assigned identity.
+- Web app currently expects a prebuilt Docker image.
