@@ -8,6 +8,8 @@ resource "azurerm_container_app_environment" "env" {
 
 }
 
+# Actualizar el módulo container_apps/main.tf
+
 resource "azurerm_container_app" "backend" {
   name                         = "backend-${var.name_suffix}"
   container_app_environment_id = azurerm_container_app_environment.env.id
@@ -22,12 +24,69 @@ resource "azurerm_container_app" "backend" {
     container {
       name   = "backend"
       image  = var.image 
-      cpu    = 0.5
-      memory = "1.0Gi"
+      cpu    = 1.0      # Aumentado para FastAPI + PostgreSQL
+      memory = "2.0Gi"  # Aumentado para FastAPI + PostgreSQL
+
+      # Variables de entorno para FastAPI
+      env {
+        name  = "DB_HOST"
+        value = var.db_host
+      }
 
       env {
-        name  = "ENV"
-        value = "dev"
+        name  = "DB_USER"
+        value = var.db_user
+      }
+
+      env {
+        name  = "DB_DB"
+        value = var.db_name
+      }
+
+      env {
+        name        = "DB_PASS"
+        secret_name = "db-password"
+      }
+
+      env {
+        name        = "SECRET_KEY"
+        secret_name = "app-secret-key"
+      }
+
+      env {
+        name  = "ALGORITHM"
+        value = "HS256"
+      }
+
+      env {
+        name  = "ACCESS_TOKEN_EXPIRE_MINUTES"
+        value = "30"
+      }
+
+      env {
+        name  = "CORS_ALLOW_ORIGINS"
+        value = var.cors_origins
+      }
+
+      # Variables para Azure AD (si las usas)
+      env {
+        name        = "AZURE_CLIENT_ID"
+        secret_name = "azure-client-id"
+      }
+
+      env {
+        name        = "AZURE_CLIENT_SECRET"
+        secret_name = "azure-client-secret"
+      }
+
+      env {
+        name  = "AZURE_TENANT_ID"
+        value = var.tenant_id
+      }
+
+      env {
+        name  = "AZURE_REDIRECT_URI"
+        value = var.azure_redirect_uri
       }
 
       env {
@@ -35,18 +94,42 @@ resource "azurerm_container_app" "backend" {
         value = var.key_vault_uri
       }
     }
+
+    # Configurar secretos desde Key Vault
+    secret {
+      name                = "db-password"
+      key_vault_secret_id = "${var.key_vault_uri}secrets/cloudkit-db-password"
+      identity            = "system"
+    }
+
+    secret {
+      name                = "app-secret-key"
+      key_vault_secret_id = "${var.key_vault_uri}secrets/app-secret-key"
+      identity            = "system"
+    }
+
+    secret {
+      name                = "azure-client-id"
+      key_vault_secret_id = "${var.key_vault_uri}secrets/azure-client-id"
+      identity            = "system"
+    }
+
+    secret {
+      name                = "azure-client-secret"
+      key_vault_secret_id = "${var.key_vault_uri}secrets/azure-client-secret"
+      identity            = "system"
+    }
   }
 
   ingress {
-  external_enabled = false
-  target_port      = 8000
+    external_enabled = true  # Cambiar a true para acceso externo
+    target_port      = 8000  # Puerto de FastAPI
 
-  traffic_weight {
-    latest_revision = true
-    percentage      = 100
+    traffic_weight {
+      latest_revision = true
+      percentage      = 100
+    }
   }
-}
-
 
   tags = var.tags
 }

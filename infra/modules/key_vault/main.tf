@@ -36,3 +36,36 @@ resource "azurerm_key_vault" "kv" {
   }
 }
 
+# Agregar estos recursos al final de main.tf o crear un archivo separado
+
+# Generar una clave secreta para JWT
+resource "random_password" "app_secret_key" {
+  length  = 64
+  special = true
+}
+
+# Almacenar el secret key en Key Vault
+resource "azurerm_key_vault_secret" "app_secret_key" {
+  name         = "app-secret-key"
+  value        = random_password.app_secret_key.result
+  key_vault_id = module.key_vault.key_vault_id
+
+  depends_on = [module.key_vault]
+}
+
+# Secretos para Azure AD (crear estos manualmente o vía variables)
+#resource "azurerm_key_vault_secret" "azure_client_id" {
+#  name         = "azure-client-id"
+#  value        = var.azure_client_id
+#  key_vault_id = module.key_vault.key_vault_id
+
+ # depends_on = [module.key_vault]
+#}
+
+#resource "azurerm_key_vault_secret" "azure_client_secret" {
+#  name         = "azure-client-secret"
+#  value        = var.azure_client_secret
+#  key_vault_id = module.key_vault.key_vault_id
+
+  #depends_on = [module.key_vault]
+#}

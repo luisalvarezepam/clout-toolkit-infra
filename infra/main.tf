@@ -102,6 +102,8 @@ resource "azurerm_key_vault_access_policy" "container_worker_policy" {
   depends_on = [azurerm_role_assignment.acr_pull_worker]
 }
 
+# Actualizar la llamada al módulo container_apps en main.tf
+
 module "container_apps" {
   source              = "./modules/container_apps"
   name_suffix         = local.name_suffix
@@ -109,10 +111,19 @@ module "container_apps" {
   resource_group_name = azurerm_resource_group.rg.name
   subnet_id           = module.network.subnet_ids.private
   acr_login_server    = module.acr.acr_login_server
-  image               = "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
-  #image               = "${module.acr.acr_login_server}/cloudkit-backend:latest"
-  use_private_image   = false
+  
+  # Usar tu imagen de FastAPI cuando esté lista
+  image               = var.use_private_image ? "${module.acr.acr_login_server}/cloudkit-backend:latest" : "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
+  use_private_image   = var.use_private_image
   key_vault_uri       = "https://${module.key_vault.key_vault_name}.vault.azure.net/"
+  
+  # Nuevas variables para FastAPI
+  db_host             = module.postgres.db_fqdn
+  db_user             = module.postgres.db_admin_username
+  db_name             = module.postgres.db_name
+  tenant_id           = var.tenant_id
+  cors_origins        = "https://${module.web_app_frontend.web_app_default_hostname}"
+  azure_redirect_uri  = "https://backend-${local.name_suffix}.${module.container_apps.container_app_environment_fqdn}/auth/azure/callback"
   
   tags                = local.tags
 }
