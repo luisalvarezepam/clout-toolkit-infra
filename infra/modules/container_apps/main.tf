@@ -17,7 +17,7 @@ resource "azurerm_container_app" "backend" {
     type = "SystemAssigned"
   }
 
-  # Definir secrets para el Container App
+  # Secrets obligatorios (siempre tienen valor)
   secret {
     name  = "db-password"
     value = var.db_password
@@ -28,14 +28,21 @@ resource "azurerm_container_app" "backend" {
     value = var.app_secret_key
   }
 
-  secret {
-    name  = "azure-client-id"
-    value = var.azure_client_id
+  # Secrets opcionales de Azure AD (solo si tienen valor)
+  dynamic "secret" {
+    for_each = var.azure_client_id != "" ? [1] : []
+    content {
+      name  = "azure-client-id"
+      value = var.azure_client_id
+    }
   }
 
-  secret {
-    name  = "azure-client-secret"
-    value = var.azure_client_secret
+  dynamic "secret" {
+    for_each = var.azure_client_secret != "" ? [1] : []
+    content {
+      name  = "azure-client-secret"
+      value = var.azure_client_secret
+    }
   }
 
   template {
@@ -86,14 +93,21 @@ resource "azurerm_container_app" "backend" {
         value = var.cors_origins
       }
 
-      env {
-        name        = "AZURE_CLIENT_ID"
-        secret_name = "azure-client-id"
+      # Variables de Azure AD (solo si están configuradas)
+      dynamic "env" {
+        for_each = var.azure_client_id != "" ? [1] : []
+        content {
+          name        = "AZURE_CLIENT_ID"
+          secret_name = "azure-client-id"
+        }
       }
 
-      env {
-        name        = "AZURE_CLIENT_SECRET"
-        secret_name = "azure-client-secret"
+      dynamic "env" {
+        for_each = var.azure_client_secret != "" ? [1] : []
+        content {
+          name        = "AZURE_CLIENT_SECRET"
+          secret_name = "azure-client-secret"
+        }
       }
 
       env {
