@@ -17,7 +17,7 @@ resource "azurerm_container_app" "backend" {
     type = "SystemAssigned"
   }
 
-  # Secrets obligatorios (siempre tienen valor)
+  # Secrets - crear todos siempre (más simple)
   secret {
     name  = "db-password"
     value = var.db_password
@@ -28,29 +28,22 @@ resource "azurerm_container_app" "backend" {
     value = var.app_secret_key
   }
 
-  # Secrets opcionales de Azure AD (solo si tienen valor)
-  dynamic "secret" {
-    for_each = var.azure_client_id != "" ? toset(["azure-client-id"]) : toset([])
-    content {
-      name  = secret.value
-      value = var.azure_client_id
-    }
+  secret {
+    name  = "azure-client-id"
+    value = var.azure_client_id != "" ? var.azure_client_id : "not-configured"
   }
 
-  dynamic "secret" {
-    for_each = var.azure_client_secret != "" ? toset(["azure-client-secret"]) : toset([])
-    content {
-      name  = secret.value
-      value = var.azure_client_secret
-    }
+  secret {
+    name  = "azure-client-secret"
+    value = var.azure_client_secret != "" ? var.azure_client_secret : "not-configured"
   }
 
   template {
     container {
       name   = "backend"
       image  = var.image 
-      cpu    = 1.0      # Aumentado para FastAPI + PostgreSQL
-      memory = "2.0Gi"  # Aumentado para FastAPI + PostgreSQL
+      cpu    = 1.0
+      memory = "2.0Gi"
 
       # Variables de entorno para FastAPI
       env {
@@ -93,21 +86,15 @@ resource "azurerm_container_app" "backend" {
         value = var.cors_origins
       }
 
-      # Variables de Azure AD (solo si están configuradas)
-      dynamic "env" {
-        for_each = var.azure_client_id != "" ? toset(["azure-client-id"]) : toset([])
-        content {
-          name        = "AZURE_CLIENT_ID"
-          secret_name = env.value
-        }
+      # Variables de Azure AD
+      env {
+        name        = "AZURE_CLIENT_ID"
+        secret_name = "azure-client-id"
       }
 
-      dynamic "env" {
-        for_each = var.azure_client_secret != "" ? toset(["azure-client-secret"]) : toset([])
-        content {
-          name        = "AZURE_CLIENT_SECRET"
-          secret_name = env.value
-        }
+      env {
+        name        = "AZURE_CLIENT_SECRET"
+        secret_name = "azure-client-secret"
       }
 
       env {
@@ -128,8 +115,8 @@ resource "azurerm_container_app" "backend" {
   }
 
   ingress {
-    external_enabled = true  # Cambiar a true para acceso externo
-    target_port      = 8000  # Puerto de FastAPI
+    external_enabled = true
+    target_port      = 8000
 
     traffic_weight {
       latest_revision = true
