@@ -13,10 +13,19 @@ jobs:
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      
+      # Variables de Terraform existentes
       TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
       TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
       TF_VAR_admin_object_id: ${{ secrets.ADMIN_OBJECT_ID }}
       TF_VAR_app_registration_object_id: ${{ secrets.APP_REGISTRATION_OBJECT_ID }}
+      
+      # Nuevas variables para Azure AD OAuth del backend (opcionales)
+      TF_VAR_azure_client_id: ${{ secrets.BACKEND_AZURE_CLIENT_ID }}
+      TF_VAR_azure_client_secret: ${{ secrets.BACKEND_AZURE_CLIENT_SECRET }}
+      
+      # Control de imagen
+      TF_VAR_use_private_image: false  # Cambiar a true cuando tengas la imagen
 
     defaults:
       run:
@@ -38,5 +47,5 @@ jobs:
         run: terraform plan
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/integration-backend'
         run: terraform apply -auto-approve
