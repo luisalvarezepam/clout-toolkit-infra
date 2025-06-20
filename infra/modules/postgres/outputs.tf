@@ -10,6 +10,3 @@ output "db_admin_username" {
   value = var.admin_username
 }
 
-output "db_password_secret_name" {
-  value = azurerm_key_vault_secret.db_password.name
-}

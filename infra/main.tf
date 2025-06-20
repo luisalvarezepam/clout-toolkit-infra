@@ -1,8 +1,37 @@
+# ========================================
+# SECRETS PARA FASTAPI BACKEND
+# ========================================
+
+# ========================================
+# RANDOM PASSWORDS (antes de los módulos)
+# ========================================
+
+# Password para PostgreSQL (usado por el módulo postgres)
+resource "random_password" "postgres_password" {
+  length  = 20
+  special = true
+}
+
+# Secreto JWT para FastAPI
+resource "random_password" "app_secret_key" {
+  length  = 64
+  special = true
+}
+
+# ========================================
+# RESOURCE GROUP
+# ========================================
+
 resource "azurerm_resource_group" "rg" {
   name     = "rg-${local.name_suffix}"
   location = var.location
   tags     = local.tags
 }
+
+# ========================================
+# MÓDULOS (en orden de dependencias)
+# ========================================
+
 
 module "network" {
   source              = "./modules/network"
@@ -23,6 +52,40 @@ module "key_vault" {
   tags                       = local.tags
 }
 
+resource "azurerm_key_vault_secret" "db_password" {
+  name         = "cloudkit-db-password"
+  value        = random_password.postgres_password.result
+  key_vault_id = module.key_vault.key_vault_id
+}
+
+# Almacenar secretos en Key Vault
+resource "azurerm_key_vault_secret" "app_secret_key" {
+  name         = "app-secret-key"
+  value        = random_password.app_secret_key.result
+  key_vault_id = module.key_vault.key_vault_id
+
+  depends_on = [module.key_vault]
+}
+
+# Secretos opcionales para Azure AD
+resource "azurerm_key_vault_secret" "azure_client_id" {
+  count        = var.azure_client_id != "" ? 1 : 0
+  name         = "azure-client-id"
+  value        = var.azure_client_id
+  key_vault_id = module.key_vault.key_vault_id
+
+  depends_on = [module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_client_secret" {
+  count        = var.azure_client_secret != "" ? 1 : 0
+  name         = "azure-client-secret"
+  value        = var.azure_client_secret
+  key_vault_id = module.key_vault.key_vault_id
+
+  depends_on = [module.key_vault]
+}
+
 module "acr" {
   source              = "./modules/acr"
   name_suffix         = replace(local.name_suffix, "-", "") # ACR no permite guiones
@@ -39,6 +102,8 @@ module "blob_storage" {
   tags                = local.tags
 }
 
+# Actualizar la llamada al módulo postgres en main.tf
+
 module "postgres" {
   source              = "./modules/postgres"
   name_suffix         = local.name_suffix
@@ -47,11 +112,14 @@ module "postgres" {
   subnet_id           = module.network.subnet_ids.db
   vnet_id             = module.network.vnet_id
   key_vault_id        = module.key_vault.key_vault_id
+  postgres_password   = random_password.postgres_password.result  # Pasar el password directamente
   tags                = local.tags
 
-  # Optional overrides
-  # admin_username      = "customadmin"
-  # db_name             = "customdb"
+  depends_on = [
+    module.network,
+    module.key_vault,
+    azurerm_key_vault_secret.db_password
+  ]
 }
 
 module "log_analytics" {
@@ -102,7 +170,9 @@ resource "azurerm_key_vault_access_policy" "container_worker_policy" {
   depends_on = [azurerm_role_assignment.acr_pull_worker]
 }
 
-# Actualizar la llamada al módulo container_apps en main.tf
+# Reemplazar la sección del módulo container_apps en infra/main.tf
+
+# En infra/main.tf, actualizar la línea del azure_redirect_uri
 
 module "container_apps" {
   source              = "./modules/container_apps"
@@ -117,27 +187,29 @@ module "container_apps" {
   use_private_image   = var.use_private_image
   key_vault_uri       = "https://${module.key_vault.key_vault_name}.vault.azure.net/"
   
-  # Variables de base de datos
+  # Variables de base de datos - usar directamente los valores
   db_host             = module.postgres.db_fqdn
   db_user             = module.postgres.db_admin_username
   db_name             = module.postgres.db_name
-  db_password         = data.azurerm_key_vault_secret.db_password.value
+  db_password         = random_password.postgres_password.result
   
   # Variables de aplicación
-  app_secret_key      = data.azurerm_key_vault_secret.app_secret_key.value
+  app_secret_key      = random_password.app_secret_key.result
   tenant_id           = var.tenant_id
   cors_origins        = "https://${module.web_app_frontend.web_app_default_hostname}"
+  # Cambiar esta línea - usar un valor fijo en lugar de referencia circular
   azure_redirect_uri  = "https://backend-${local.name_suffix}.azurecontainerapps.io/auth/azure/callback"
   
-  # Variables de Azure AD (usar valores vacíos si no están configuradas)
-  azure_client_id     = var.azure_client_id != "" ? data.azurerm_key_vault_secret.azure_client_id[0].value : ""
-  azure_client_secret = var.azure_client_secret != "" ? data.azurerm_key_vault_secret.azure_client_secret[0].value : ""
+  # Variables de Azure AD - usar directamente las variables
+  azure_client_id     = var.azure_client_id
+  azure_client_secret = var.azure_client_secret
   
   tags                = local.tags
   
   depends_on = [
     module.postgres,
-    azurerm_key_vault_secret.app_secret_key
+    module.key_vault,
+    module.web_app_frontend
   ]
 }
 
@@ -195,44 +267,6 @@ module "network_security" {
   subnet_prefixes     = module.network.subnet_prefixes
   subnet_ids          = module.network.subnet_ids
   tags                = local.tags
-}
-
-# ========================================
-# SECRETS PARA FASTAPI BACKEND
-# ========================================
-
-# Generar secreto JWT automáticamente
-resource "random_password" "app_secret_key" {
-  length  = 64
-  special = true
-}
-
-# Almacenar secretos en Key Vault
-resource "azurerm_key_vault_secret" "app_secret_key" {
-  name         = "app-secret-key"
-  value        = random_password.app_secret_key.result
-  key_vault_id = module.key_vault.key_vault_id
-
-  depends_on = [module.key_vault]
-}
-
-# Secretos opcionales para Azure AD
-resource "azurerm_key_vault_secret" "azure_client_id" {
-  count        = var.azure_client_id != "" ? 1 : 0
-  name         = "azure-client-id"
-  value        = var.azure_client_id
-  key_vault_id = module.key_vault.key_vault_id
-
-  depends_on = [module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "azure_client_secret" {
-  count        = var.azure_client_secret != "" ? 1 : 0
-  name         = "azure-client-secret"
-  value        = var.azure_client_secret
-  key_vault_id = module.key_vault.key_vault_id
-
-  depends_on = [module.key_vault]
 }
 
 # ========================================

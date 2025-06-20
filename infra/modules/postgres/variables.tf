@@ -37,3 +37,9 @@ variable "vnet_id" {
   type        = string
 }
 
+# Nueva variable para recibir el password
+variable "postgres_password" {
+  description = "Password para PostgreSQL (generado externamente)"
+  type        = string
+  sensitive   = true
+}

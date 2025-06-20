@@ -2,6 +2,11 @@ name: Terraform Deploy
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: 
+      - 'infra/**'
+      - '.github/workflows/terraform-deploy.yml'
 
 jobs:
   terraform:
@@ -9,23 +14,25 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      # Autenticación Azure
       ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
       
-      # Variables de Terraform existentes
+      # Variables de Terraform - valores fijos
+      TF_VAR_location: "Central US"
       TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
       TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
       TF_VAR_admin_object_id: ${{ secrets.ADMIN_OBJECT_ID }}
       TF_VAR_app_registration_object_id: ${{ secrets.APP_REGISTRATION_OBJECT_ID }}
       
-      # Nuevas variables para Azure AD OAuth del backend (opcionales)
+      # Azure AD OAuth Backend (opcional)
       TF_VAR_azure_client_id: ${{ secrets.BACKEND_AZURE_CLIENT_ID }}
       TF_VAR_azure_client_secret: ${{ secrets.BACKEND_AZURE_CLIENT_SECRET }}
       
-      # Control de imagen
-      TF_VAR_use_private_image: false  # Cambiar a true cuando tengas la imagen
+      # Control de imagen - cambiar a true cuando esté lista
+      TF_VAR_use_private_image: false
 
     defaults:
       run:
@@ -33,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
@@ -44,8 +51,15 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/integration-backend'
-        run: terraform apply -auto-approve
+        if: github.ref == 'refs/heads/main'
+        run: terraform apply tfplan
+
+      - name: Output Important Values
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "🌐 Backend URL: $(terraform output -raw container_app_url || echo 'Not available yet')"
+          echo "🌍 Frontend URL: https://$(terraform output -raw web_app_hostname || echo 'Not available yet')"
+          echo "🔐 Key Vault: $(terraform output -raw key_vault_name || echo 'Not available yet')"
