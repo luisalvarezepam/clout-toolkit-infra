@@ -112,20 +112,33 @@ module "container_apps" {
   subnet_id           = module.network.subnet_ids.private
   acr_login_server    = module.acr.acr_login_server
   
-  # Usar tu imagen de FastAPI cuando esté lista
+  # Imagen - usar privada cuando esté lista
   image               = var.use_private_image ? "${module.acr.acr_login_server}/cloudkit-backend:latest" : "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
   use_private_image   = var.use_private_image
   key_vault_uri       = "https://${module.key_vault.key_vault_name}.vault.azure.net/"
   
-  # Nuevas variables para FastAPI
+  # Variables de base de datos
   db_host             = module.postgres.db_fqdn
   db_user             = module.postgres.db_admin_username
   db_name             = module.postgres.db_name
+  db_password         = data.azurerm_key_vault_secret.db_password.value
+  
+  # Variables de aplicación
+  app_secret_key      = data.azurerm_key_vault_secret.app_secret_key.value
   tenant_id           = var.tenant_id
   cors_origins        = "https://${module.web_app_frontend.web_app_default_hostname}"
-  azure_redirect_uri  = "https://backend-${local.name_suffix}.${module.container_apps.container_app_environment_fqdn}/auth/azure/callback"
+  azure_redirect_uri  = "https://backend-${local.name_suffix}.azurecontainerapps.io/auth/azure/callback"
+  
+  # Variables de Azure AD (usar valores vacíos si no están configuradas)
+  azure_client_id     = var.azure_client_id != "" ? data.azurerm_key_vault_secret.azure_client_id[0].value : ""
+  azure_client_secret = var.azure_client_secret != "" ? data.azurerm_key_vault_secret.azure_client_secret[0].value : ""
   
   tags                = local.tags
+  
+  depends_on = [
+    module.postgres,
+    azurerm_key_vault_secret.app_secret_key
+  ]
 }
 
 module "diagnostic_backend" {
@@ -184,3 +197,74 @@ module "network_security" {
   tags                = local.tags
 }
 
+# ========================================
+# SECRETS PARA FASTAPI BACKEND
+# ========================================
+
+# Generar secreto JWT automáticamente
+resource "random_password" "app_secret_key" {
+  length  = 64
+  special = true
+}
+
+# Almacenar secretos en Key Vault
+resource "azurerm_key_vault_secret" "app_secret_key" {
+  name         = "app-secret-key"
+  value        = random_password.app_secret_key.result
+  key_vault_id = module.key_vault.key_vault_id
+
+  depends_on = [module.key_vault]
+}
+
+# Secretos opcionales para Azure AD
+resource "azurerm_key_vault_secret" "azure_client_id" {
+  count        = var.azure_client_id != "" ? 1 : 0
+  name         = "azure-client-id"
+  value        = var.azure_client_id
+  key_vault_id = module.key_vault.key_vault_id
+
+  depends_on = [module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_client_secret" {
+  count        = var.azure_client_secret != "" ? 1 : 0
+  name         = "azure-client-secret"
+  value        = var.azure_client_secret
+  key_vault_id = module.key_vault.key_vault_id
+
+  depends_on = [module.key_vault]
+}
+
+# ========================================
+# DATA SOURCES PARA LEER SECRETS
+# ========================================
+
+data "azurerm_key_vault_secret" "db_password" {
+  name         = "cloudkit-db-password"
+  key_vault_id = module.key_vault.key_vault_id
+  
+  depends_on = [module.postgres]
+}
+
+data "azurerm_key_vault_secret" "app_secret_key" {
+  name         = "app-secret-key"
+  key_vault_id = module.key_vault.key_vault_id
+  
+  depends_on = [azurerm_key_vault_secret.app_secret_key]
+}
+
+data "azurerm_key_vault_secret" "azure_client_id" {
+  count        = var.azure_client_id != "" ? 1 : 0
+  name         = "azure-client-id"
+  key_vault_id = module.key_vault.key_vault_id
+  
+  depends_on = [azurerm_key_vault_secret.azure_client_id]
+}
+
+data "azurerm_key_vault_secret" "azure_client_secret" {
+  count        = var.azure_client_secret != "" ? 1 : 0
+  name         = "azure-client-secret"
+  key_vault_id = module.key_vault.key_vault_id
+  
+  depends_on = [azurerm_key_vault_secret.azure_client_secret]
+}

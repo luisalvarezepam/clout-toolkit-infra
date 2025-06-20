@@ -1,5 +1,3 @@
-# Actualizar variables.tf del módulo container_apps
-
 variable "name_suffix" {
   type        = string
   description = "Nombre base para los recursos"
@@ -41,7 +39,7 @@ variable "image" {
   type = string
 }
 
-# Nuevas variables para FastAPI
+# Variables para FastAPI
 variable "db_host" {
   type        = string
   description = "Hostname de la base de datos PostgreSQL"
@@ -74,4 +72,31 @@ variable "azure_redirect_uri" {
   type        = string
   description = "URI de redirección para Azure AD"
   default     = "https://backend-cloudkit-dev-cus.azurecontainerapps.io/auth/azure/callback"
+}
+
+# Variables para secrets (valores sensibles)
+variable "db_password" {
+  type        = string
+  description = "Password de la base de datos"
+  sensitive   = true
+}
+
+variable "app_secret_key" {
+  type        = string
+  description = "Clave secreta para JWT"
+  sensitive   = true
+}
+
+variable "azure_client_id" {
+  type        = string
+  description = "Azure Client ID para OAuth"
+  sensitive   = true
+  default     = ""
+}
+
+variable "azure_client_secret" {
+  type        = string
+  description = "Azure Client Secret para OAuth"
+  sensitive   = true
+  default     = ""
 }

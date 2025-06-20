@@ -2,13 +2,10 @@ resource "azurerm_container_app_environment" "env" {
   name                             = "env-${var.name_suffix}"
   location                         = var.location
   resource_group_name              = var.resource_group_name
-  infrastructure_subnet_id        = var.subnet_id
-  internal_load_balancer_enabled  = true
+  infrastructure_subnet_id         = var.subnet_id
+  internal_load_balancer_enabled   = true
   tags                             = var.tags
-
 }
-
-# Actualizar el módulo container_apps/main.tf
 
 resource "azurerm_container_app" "backend" {
   name                         = "backend-${var.name_suffix}"
@@ -18,6 +15,27 @@ resource "azurerm_container_app" "backend" {
 
   identity {
     type = "SystemAssigned"
+  }
+
+  # Definir secrets para el Container App
+  secret {
+    name  = "db-password"
+    value = var.db_password
+  }
+
+  secret {
+    name  = "app-secret-key"
+    value = var.app_secret_key
+  }
+
+  secret {
+    name  = "azure-client-id"
+    value = var.azure_client_id
+  }
+
+  secret {
+    name  = "azure-client-secret"
+    value = var.azure_client_secret
   }
 
   template {
@@ -68,7 +86,6 @@ resource "azurerm_container_app" "backend" {
         value = var.cors_origins
       }
 
-      # Variables para Azure AD (si las usas)
       env {
         name        = "AZURE_CLIENT_ID"
         secret_name = "azure-client-id"
@@ -94,31 +111,6 @@ resource "azurerm_container_app" "backend" {
         value = var.key_vault_uri
       }
     }
-
-    # Configurar secretos desde Key Vault
-    secret {
-      name                = "db-password"
-      key_vault_secret_id = "${var.key_vault_uri}secrets/cloudkit-db-password"
-      identity            = "system"
-    }
-
-    secret {
-      name                = "app-secret-key"
-      key_vault_secret_id = "${var.key_vault_uri}secrets/app-secret-key"
-      identity            = "system"
-    }
-
-    secret {
-      name                = "azure-client-id"
-      key_vault_secret_id = "${var.key_vault_uri}secrets/azure-client-id"
-      identity            = "system"
-    }
-
-    secret {
-      name                = "azure-client-secret"
-      key_vault_secret_id = "${var.key_vault_uri}secrets/azure-client-secret"
-      identity            = "system"
-    }
   }
 
   ingress {
@@ -133,6 +125,3 @@ resource "azurerm_container_app" "backend" {
 
   tags = var.tags
 }
-
-
-

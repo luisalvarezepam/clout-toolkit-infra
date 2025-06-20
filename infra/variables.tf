@@ -32,3 +32,16 @@ variable "subscription_id" {
   sensitive   = true
 }
 
+variable "azure_client_id" {
+  description = "Azure Client ID para OAuth del backend (opcional)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "azure_client_secret" {
+  description = "Azure Client Secret para OAuth del backend (opcional)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
