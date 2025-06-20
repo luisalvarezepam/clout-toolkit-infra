@@ -30,17 +30,17 @@ resource "azurerm_container_app" "backend" {
 
   # Secrets opcionales de Azure AD (solo si tienen valor)
   dynamic "secret" {
-    for_each = var.azure_client_id != "" ? [1] : []
+    for_each = var.azure_client_id != "" ? toset(["azure-client-id"]) : toset([])
     content {
-      name  = "azure-client-id"
+      name  = secret.value
       value = var.azure_client_id
     }
   }
 
   dynamic "secret" {
-    for_each = var.azure_client_secret != "" ? [1] : []
+    for_each = var.azure_client_secret != "" ? toset(["azure-client-secret"]) : toset([])
     content {
-      name  = "azure-client-secret"
+      name  = secret.value
       value = var.azure_client_secret
     }
   }
@@ -95,18 +95,18 @@ resource "azurerm_container_app" "backend" {
 
       # Variables de Azure AD (solo si están configuradas)
       dynamic "env" {
-        for_each = var.azure_client_id != "" ? [1] : []
+        for_each = var.azure_client_id != "" ? toset(["azure-client-id"]) : toset([])
         content {
           name        = "AZURE_CLIENT_ID"
-          secret_name = "azure-client-id"
+          secret_name = env.value
         }
       }
 
       dynamic "env" {
-        for_each = var.azure_client_secret != "" ? [1] : []
+        for_each = var.azure_client_secret != "" ? toset(["azure-client-secret"]) : toset([])
         content {
           name        = "AZURE_CLIENT_SECRET"
-          secret_name = "azure-client-secret"
+          secret_name = env.value
         }
       }
 
