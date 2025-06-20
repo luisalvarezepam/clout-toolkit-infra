@@ -1,3 +1,5 @@
+# Agregar al final de infra/outputs.tf
+
 output "vnet_id" {
   value = module.network.vnet_id
 }
@@ -14,6 +16,11 @@ output "container_app_principal_id" {
 output "container_app_id" {
   description = "ID completo del recurso Container App backend"
   value       = module.container_apps.container_app_id
+}
+
+output "container_app_url" {
+  description = "URL completa del Container App backend"
+  value       = module.container_apps.container_app_url
 }
 
 output "key_vault_name" {

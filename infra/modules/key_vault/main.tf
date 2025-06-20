@@ -23,7 +23,7 @@ resource "azurerm_key_vault" "kv" {
     object_id = var.app_registration_object_id
 
     secret_permissions = [
-      "Get", "List", "Set"
+      "Get", "List", "Set", "Delete", "Purge", "Recover"
     ]
   }
 }

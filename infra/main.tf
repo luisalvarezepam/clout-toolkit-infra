@@ -172,6 +172,8 @@ resource "azurerm_key_vault_access_policy" "container_worker_policy" {
 
 # Reemplazar la sección del módulo container_apps en infra/main.tf
 
+# En infra/main.tf, actualizar la línea del azure_redirect_uri
+
 module "container_apps" {
   source              = "./modules/container_apps"
   name_suffix         = local.name_suffix
@@ -189,12 +191,13 @@ module "container_apps" {
   db_host             = module.postgres.db_fqdn
   db_user             = module.postgres.db_admin_username
   db_name             = module.postgres.db_name
-  db_password         = random_password.postgres_password.result  # Directo desde el recurso
+  db_password         = random_password.postgres_password.result
   
   # Variables de aplicación
-  app_secret_key      = random_password.app_secret_key.result     # Directo desde el recurso
+  app_secret_key      = random_password.app_secret_key.result
   tenant_id           = var.tenant_id
   cors_origins        = "https://${module.web_app_frontend.web_app_default_hostname}"
+  # Cambiar esta línea - usar un valor fijo en lugar de referencia circular
   azure_redirect_uri  = "https://backend-${local.name_suffix}.azurecontainerapps.io/auth/azure/callback"
   
   # Variables de Azure AD - usar directamente las variables
